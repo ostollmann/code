@@ -1,0 +1,23 @@
+Name: XGen
+Version: 0.0.1
+Cabal-Version: >= 1.2
+Build-type: Simple
+License: AllRightsReserved
+License-file: LICENSE
+Copyright: 
+  Copyright (c) 2011, Oliver Stollmann
+Author: Oliver Stollmann <oliver@stollmann.net>
+Maintainer: Oliver Stollmann <oliver@stollmann.net>
+Homepage: http://o1iver.net/code/
+Category: Generator
+Synopsis: A String Generator
+Description: Nothing
+Library
+  Exposed-modules: 
+                 XGen.StringGenerator,
+                 XGen.Types
+  Other-modules:
+                 XGen.Parser.HappyParser,
+                 XGen.Parser.Lexer
+  GHC-options: -fwarn-missing-signatures -Wall
+  Build-depends: base >= 2 && < 4, array

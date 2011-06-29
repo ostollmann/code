@@ -1,7 +1,9 @@
 {-# OPTIONS_GHC -w #-}
 {-# OPTIONS -fglasgow-exts -cpp #-}
+{-# LANGUAGE FlexibleInstances #-}
 module XGen.Parser.HappyParser
 ( parse
+, ParserError(..)
 )
 where
 
@@ -9,7 +11,6 @@ import Data.Char
 import Prelude   hiding (lex)
 import XGen.Types
 import XGen.Parser.Lexer
-import XGen.Parser.ParseErrorMonad
 import qualified Data.Array as Happy_Data_Array
 import qualified GHC.Exts as Happy_GHC_Exts
 
@@ -131,7 +132,8 @@ happyReduction_6 happy_x_3
                                                      'v' -> TVowel
                                                      'c' -> TConsonant
                                                      'l' -> TLetter
-                                                     'n' -> TNumber) happy_var_2
+                                                     'n' -> TNumber
+                                                     _   -> TUnknown) happy_var_2
 	)}
 
 happyReduce_7 = happySpecReduce_3  2# happyReduction_7
@@ -201,14 +203,14 @@ happyNewToken action sts stk (tk:tks) =
 
 happyError_ tk tks = happyError' (tk:tks)
 
-happyThen :: () => E a -> (a -> E b) -> E b
-happyThen = (thenE)
-happyReturn :: () => a -> E a
-happyReturn = (returnE)
-happyThen1 m k tks = (thenE) m (\a -> k a tks)
-happyReturn1 :: () => a -> b -> E a
-happyReturn1 = \a tks -> (returnE) a
-happyError' :: () => [(Character)] -> E a
+happyThen :: () => Either ParserError a -> (a -> Either ParserError b) -> Either ParserError b
+happyThen = (>>=)
+happyReturn :: () => a -> Either ParserError a
+happyReturn = (return)
+happyThen1 m k tks = (>>=) m (\a -> k a tks)
+happyReturn1 :: () => a -> b -> Either ParserError a
+happyReturn1 = \a tks -> (return) a
+happyError' :: () => [(Character)] -> Either ParserError a
 happyError' = parseError
 
 parse tks = happySomeParser where
@@ -220,7 +222,15 @@ happySeq = happyDontSeq
 -- parseError :: [Character] -> a
 -- parseError _ = error "parse error"
 -- parseError _ = Nothing
-parseError tokens = failE "Parse error"
+
+parseError tokens = Left (ParserError tokens)
+
+instance Monad (Either ParserError) where
+  return v = Right v
+  (Left s) >>= _ = Left s
+  (Right r) >>= f = f r
+
+data ParserError = ParserError [Character] deriving (Show)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

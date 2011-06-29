@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -w #-}
+{-# LANGUAGE FlexibleInstances #-}
 module XGen.Parser.HappyParser
 ( parse
+, ParserError(..)
 )
 where
 
@@ -8,7 +10,14 @@ import Data.Char
 import Prelude   hiding (lex)
 import XGen.Types
 import XGen.Parser.Lexer
-import XGen.Parser.ParseErrorMonad
+
+
+data ParserError = ParserError [Character] deriving (Show)
+
+instance Monad (Either ParserError) where
+  return v = Right v
+  (Left s) >>= _ = Left s
+  (Right r) >>= f = f r
 
 -- parser produced by Happy Version 1.18.6
 
@@ -205,14 +214,14 @@ happyNewToken action sts stk (tk:tks) =
 
 happyError_ tk tks = happyError' (tk:tks)
 
-happyThen :: () => E a -> (a -> E b) -> E b
-happyThen = (thenE)
-happyReturn :: () => a -> E a
-happyReturn = (returnE)
-happyThen1 m k tks = (thenE) m (\a -> k a tks)
-happyReturn1 :: () => a -> b -> E a
-happyReturn1 = \a tks -> (returnE) a
-happyError' :: () => [(Character)] -> E a
+happyThen :: () => Either ParserError a -> (a -> Either ParserError b) -> Either ParserError b
+happyThen = (>>=)
+happyReturn :: () => a -> Either ParserError a
+happyReturn = (return)
+happyThen1 m k tks = (>>=) m (\a -> k a tks)
+happyReturn1 :: () => a -> b -> Either ParserError a
+happyReturn1 = \a tks -> (return) a
+happyError' :: () => [(Character)] -> Either ParserError a
 happyError' = parseError
 
 parse tks = happySomeParser where
@@ -224,7 +233,8 @@ happySeq = happyDontSeq
 -- parseError :: [Character] -> a
 -- parseError _ = error "parse error"
 -- parseError _ = Nothing
-parseError tokens = failE "Parse error"
+
+parseError tokens = Left (ParserError tokens)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

@@ -1,60 +1,52 @@
 module XGen.StringGenerator
 (
- parseExpression
+generate
 ) where
 
 
 import XGen.Types
 import XGen.Parser.Lexer
 import XGen.Parser.HappyParser
-import XGen.Parser.ParseErrorMonad
 
-import Prelude hiding (lex)
+import Prelude hiding (lex, showChar)
 import Data.List
+import Data.Either
 import Control.Applicative
 
 
+data GenerationError = GenerationError String deriving (Show)
 
----------------------------------------------------------------------------------------------------------
--- | Given a valid expression all possible string permutations will be returned
---genFromExpression ex = case parseExpression ex of
---             Right p -> findAll p
---             Left e -> [e]
+generate :: String -> Either GenerationError [String]
+generate s = let
+                lexResult = lex s
+                parseResult = parse (rights lexResult)
+                genResult   = findAll (getRight parseResult)
+             in 
+                if noLefts lexResult
+                then if notLeft parseResult
+                     then (Right genResult)
+                     else (Left (GenerationError (getParserError parseResult)))
+                else (Left (GenerationError (getLexerErrors lexResult)))
 
----------------------------------------------------------------------------------------------------------
--- | Given a string it will lex and parse it, returning an XString or an error message
-parseExpression = parse' . eitherLex
+getParserError :: Either ParserError XString -> String
+getParserError (Left (ParserError cs)) = "Parse error near: " ++ parserErrorToString cs
+getParserError (Right _)               = error "Could not get ParserError from 'right' result!"
+parserErrorToString cs = "'" ++ (concat $ map showChar cs) ++ "'"
 
-parse' lexed = case lexed of
-    Left err -> Left err
-    Right cs -> (\cs' ->
-            let parsed = checkUnknown . parse $ cs'
-                checkUnknown ts = if containsUnknown ts
-                                  then (Failed "Error! Expression invalid (could not be parsed)")
-                                  else ts
-                containsUnknown (Ok (XString ts)) = not . null $ filter (let f TUnknown = True; f _ = False in f) ts
-                containsUnknown (Failed p) = False
-            in
-                case parsed of
-                    Ok p -> Right p
-                    Failed p -> Left p
-        ) cs
 
-fparsed' cs' = case parsed' cs' of
-                    Ok p -> Right p
-                    Failed p -> Left p
+getLexerErrors :: [Either LexerError Character] -> String
+getLexerErrors es  = "Could not lex the following character(s): " ++ getLexerErrors'(lefts es) ++ ""
+getLexerErrors' es = concat $ intersperse ", " $ map lexerErrorToString es
+lexerErrorToString (UnknownCharacter c) = "'" ++ [c] ++ "'"
+lexerErrorToString _                    = "<unknown-lexer-error>"
 
-parsed' cs' = checkUnknown' . parse $ cs'
-checkUnknown' ts = if containsUnknown' ts
-                   then (Failed "Error! Expression invalid (could not be parsed)")
-                   else ts
-containsUnknown' (Ok (XString ts)) = not . null $ filter (let f TUnknown = True; f _ = False in f) ts
-containsUnknown' (Failed p) = False
 
---parse' s = case parse s of
---              (Ok p) -> (Just p)
---              (Failed p) -> Nothing
+noLefts = null . lefts
+notLeft (Left _ ) = False
+notLeft (Right _ ) = True
 
+getRight (Right x) = x
+getRight (Left _) = error "Could not get left!"
 
 
 --------------------------------------------------------------------------------------------------------

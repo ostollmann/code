@@ -1,7 +1,8 @@
 {
-
+{-# LANGUAGE FlexibleInstances #-}
 module XGen.Parser.HappyParser
 ( parse
+, ParserError(..)
 )
 where
 
@@ -9,14 +10,12 @@ import Data.Char
 import Prelude   hiding (lex)
 import XGen.Types
 import XGen.Parser.Lexer
-import XGen.Parser.ParseErrorMonad
-
 }
 
 %name parse
 %tokentype { Character  }
 %error     { parseError }
-%monad { E } { thenE } { returnE }
+%monad { Either ParserError }
 
 %token
     lBracket                  { CLBracket   }
@@ -53,5 +52,14 @@ listitems : char comma char                 { [$1, $3]                  }
 -- parseError :: [Character] -> a
 -- parseError _ = error "parse error"
 -- parseError _ = Nothing
-parseError tokens = failE "Parse error"
+
+parseError tokens = Left (ParserError tokens)
+
+instance Monad (Either ParserError) where
+  return v = Right v
+  (Left s) >>= _ = Left s
+  (Right r) >>= f = f r
+
+data ParserError = ParserError [Character] deriving (Show)
+
 }

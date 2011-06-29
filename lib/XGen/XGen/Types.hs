@@ -16,5 +16,6 @@ data XStringPart = TLiteral Char
                  | TList [Char]
                  | TRange Char Char
                  | TAny
+                 | TUnknown
                  deriving (Show)
 

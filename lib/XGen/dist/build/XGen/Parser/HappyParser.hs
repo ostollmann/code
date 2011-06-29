@@ -7,8 +7,9 @@ where
 
 import Data.Char
 import Prelude   hiding (lex)
-import XGen.Parser.Lexer
 import XGen.Types
+import XGen.Parser.Lexer
+import XGen.Parser.ParseErrorMonad
 import qualified Data.Array as Happy_Data_Array
 import qualified GHC.Exts as Happy_GHC_Exts
 
@@ -200,32 +201,26 @@ happyNewToken action sts stk (tk:tks) =
 
 happyError_ tk tks = happyError' (tk:tks)
 
-newtype HappyIdentity a = HappyIdentity a
-happyIdentity = HappyIdentity
-happyRunIdentity (HappyIdentity a) = a
+happyThen :: () => E a -> (a -> E b) -> E b
+happyThen = (thenE)
+happyReturn :: () => a -> E a
+happyReturn = (returnE)
+happyThen1 m k tks = (thenE) m (\a -> k a tks)
+happyReturn1 :: () => a -> b -> E a
+happyReturn1 = \a tks -> (returnE) a
+happyError' :: () => [(Character)] -> E a
+happyError' = parseError
 
-instance Monad HappyIdentity where
-    return = HappyIdentity
-    (HappyIdentity p) >>= q = q p
-
-happyThen :: () => HappyIdentity a -> (a -> HappyIdentity b) -> HappyIdentity b
-happyThen = (>>=)
-happyReturn :: () => a -> HappyIdentity a
-happyReturn = (return)
-happyThen1 m k tks = (>>=) m (\a -> k a tks)
-happyReturn1 :: () => a -> b -> HappyIdentity a
-happyReturn1 = \a tks -> (return) a
-happyError' :: () => [(Character)] -> HappyIdentity a
-happyError' = HappyIdentity . parseError
-
-parse tks = happyRunIdentity happySomeParser where
+parse tks = happySomeParser where
   happySomeParser = happyThen (happyParse 0# tks) (\x -> happyReturn (happyOut4 x))
 
 happySeq = happyDontSeq
 
 
-parseError :: [Character] -> a
-parseError _ = error "parse error"
+-- parseError :: [Character] -> a
+-- parseError _ = error "parse error"
+-- parseError _ = Nothing
+parseError tokens = failE "Parse error"
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

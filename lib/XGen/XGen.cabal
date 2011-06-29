@@ -15,7 +15,8 @@ Description: Nothing
 Library
   Exposed-modules: 
                  XGen.StringGenerator,
-                 XGen.Types
+                 XGen.Types,
+                 XGen.Parser.ParseErrorMonad
   Other-modules:
                  XGen.Parser.HappyParser,
                  XGen.Parser.Lexer

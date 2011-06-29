@@ -1,12 +1,13 @@
 module XGen.StringGenerator
-( genFromExpression
-, parseExpression
+(
+ parseExpression
 ) where
 
 
 import XGen.Types
 import XGen.Parser.Lexer
 import XGen.Parser.HappyParser
+import XGen.Parser.ParseErrorMonad
 
 import Prelude hiding (lex)
 import Data.List
@@ -16,15 +17,47 @@ import Control.Applicative
 
 ---------------------------------------------------------------------------------------------------------
 -- | Given a valid expression all possible string permutations will be returned
-genFromExpression = findAll . parseExpression
-
-
----------------------------------------------------------------------------------------------------------
--- | Given a string it will lex and parse it, returning an XString
-parseExpression = parse . lex
-
+--genFromExpression ex = case parseExpression ex of
+--             Right p -> findAll p
+--             Left e -> [e]
 
 ---------------------------------------------------------------------------------------------------------
+-- | Given a string it will lex and parse it, returning an XString or an error message
+parseExpression = parse' . eitherLex
+
+parse' lexed = case lexed of
+    Left err -> Left err
+    Right cs -> (\cs' ->
+            let parsed = checkUnknown . parse $ cs'
+                checkUnknown ts = if containsUnknown ts
+                                  then (Failed "Error! Expression invalid (could not be parsed)")
+                                  else ts
+                containsUnknown (Ok (XString ts)) = not . null $ filter (let f TUnknown = True; f _ = False in f) ts
+                containsUnknown (Failed p) = False
+            in
+                case parsed of
+                    Ok p -> Right p
+                    Failed p -> Left p
+        ) cs
+
+fparsed' cs' = case parsed' cs' of
+                    Ok p -> Right p
+                    Failed p -> Left p
+
+parsed' cs' = checkUnknown' . parse $ cs'
+checkUnknown' ts = if containsUnknown' ts
+                   then (Failed "Error! Expression invalid (could not be parsed)")
+                   else ts
+containsUnknown' (Ok (XString ts)) = not . null $ filter (let f TUnknown = True; f _ = False in f) ts
+containsUnknown' (Failed p) = False
+
+--parse' s = case parse s of
+--              (Ok p) -> (Just p)
+--              (Failed p) -> Nothing
+
+
+
+--------------------------------------------------------------------------------------------------------
 -- | findAll
 -- Given an XString it will return a list of all possible permutations
 

@@ -1,6 +1,6 @@
 module XGen.StringGenerator
-(
-generate
+( generate
+, GenerationError(..)
 ) where
 
 
@@ -24,9 +24,15 @@ generate s = let
              in 
                 if noLefts lexResult
                 then if notLeft parseResult
-                     then (Right genResult)
+                     then if noUnknowns parseResult
+                          then (Right genResult)
+                          else (Left (GenerationError "Parse Error, invalid token of type '(<?>)'"))
                      else (Left (GenerationError (getParserError parseResult)))
                 else (Left (GenerationError (getLexerErrors lexResult)))
+
+                --     then (Right genResult)
+                --     else (Left (GenerationError (getParserError parseResult)))
+                --else (Left (GenerationError (getLexerErrors lexResult)))
 
 getParserError :: Either ParserError XString -> String
 getParserError (Left (ParserError cs)) = "Parse error near: " ++ parserErrorToString cs
@@ -44,6 +50,15 @@ lexerErrorToString _                    = "<unknown-lexer-error>"
 noLefts = null . lefts
 notLeft (Left _ ) = False
 notLeft (Right _ ) = True
+
+noUnknowns (Right (XString ps)) = null $ filter isUnknown ps
+-- Shouldnt really happen, but just in case
+noUnknowns (Left _)             = False
+
+isUnknown :: XStringPart -> Bool
+isUnknown TUnknown = True
+isUnknown _        = False
+
 
 getRight (Right x) = x
 getRight (Left _) = error "Could not get left!"

@@ -11,14 +11,6 @@ import Prelude   hiding (lex)
 import XGen.Types
 import XGen.Parser.Lexer
 
-
-data ParserError = ParserError [Character] deriving (Show)
-
-instance Monad (Either ParserError) where
-  return v = Right v
-  (Left s) >>= _ = Left s
-  (Right r) >>= f = f r
-
 -- parser produced by Happy Version 1.18.6
 
 data HappyAbsSyn t4 t5 t6 t7
@@ -235,6 +227,13 @@ happySeq = happyDontSeq
 -- parseError _ = Nothing
 
 parseError tokens = Left (ParserError tokens)
+
+instance Monad (Either ParserError) where
+  return v = Right v
+  (Left s) >>= _ = Left s
+  (Right r) >>= f = f r
+
+data ParserError = ParserError [Character] deriving (Show)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
